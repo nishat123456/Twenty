@@ -2,7 +2,9 @@ import SwiftUI
 import SwiftData
 
 @main
-struct Buffet_Strat_AppApp: App {
+struct TwentyApp: App {
+    @State private var showingLanding = true
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             StockEvaluation.self,
@@ -18,7 +20,19 @@ struct Buffet_Strat_AppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ZStack {
+                if showingLanding {
+                    LandingView {
+                        withAnimation(.easeInOut(duration: 0.4)) {
+                            showingLanding = false
+                        }
+                    }
+                    .transition(.opacity)
+                } else {
+                    ContentView()
+                        .transition(.opacity)
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
     }
