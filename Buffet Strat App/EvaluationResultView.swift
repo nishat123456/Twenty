@@ -4,7 +4,8 @@ import SwiftData
 struct EvaluationResultView: View {
     let evaluation: StockEvaluation
     @State private var pdfURL: URL?
-    
+    @State private var showingEdit = false
+
     var body: some View {
         Form {
             Section(header: Text("Overview")) {
@@ -32,30 +33,16 @@ struct EvaluationResultView: View {
             }
             
             Section(header: Text("Criteria Checked")) {
-                CheckmarkRow(title: "1. EPS yearly increases", isChecked: evaluation.epsYearlyIncreases)
-                CheckmarkRow(title: "2. EPS rate of increase", isChecked: evaluation.epsRateOfIncrease)
-                CheckmarkRow(title: "3. Predictability of Earnings", isChecked: evaluation.predictableEarnings)
-                CheckmarkRow(title: "4. Yield", isChecked: evaluation.goodYield)
-                CheckmarkRow(title: "5. ROE", isChecked: evaluation.goodROE)
-                CheckmarkRow(title: "6. Cash Flow", isChecked: evaluation.strongCashFlow)
-                CheckmarkRow(title: "7. Slope", isChecked: evaluation.positiveSlope)
-                CheckmarkRow(title: "8. Debt to Equity Ratio", isChecked: evaluation.lowDebtToEquity)
-                CheckmarkRow(title: "9. PE", isChecked: evaluation.reasonablePE)
-                CheckmarkRow(title: "10. Insider Activity", isChecked: evaluation.positiveInsiderActivity)
-                CheckmarkRow(title: "11. Consumer Monopoly", isChecked: evaluation.isConsumerMonopoly)
-                CheckmarkRow(title: "12. Spin", isChecked: evaluation.positiveSpin)
-                CheckmarkRow(title: "13. Analyst's Opinion", isChecked: evaluation.favorableAnalystOpinion)
-                CheckmarkRow(title: "14. Fair Value", isChecked: evaluation.belowFairValue)
-                CheckmarkRow(title: "15. Understandable Business", isChecked: evaluation.understandableBusiness)
-                CheckmarkRow(title: "16. Takeover Target", isChecked: evaluation.potentialTakeoverTarget)
-                CheckmarkRow(title: "17. Evolution not Revolution", isChecked: evaluation.isEvolutionaryNotRevolutionary)
-                CheckmarkRow(title: "18. Great or good company", isChecked: evaluation.isGreatCompany)
-                CheckmarkRow(title: "19. Good Investment Price", isChecked: evaluation.goodPricing)
-                CheckmarkRow(title: "20. No Portfolio Duplication", isChecked: evaluation.noPortfolioDuplication)
+                ForEach(ChecklistCriterion.all) { criterion in
+                    CheckmarkRow(title: criterion.label, isChecked: evaluation[keyPath: criterion.keyPath])
+                }
             }
         }
         .navigationTitle(evaluation.tickerSymbol)
         .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Edit") { showingEdit = true }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 if let url = pdfURL {
                     ShareLink(item: url) {
@@ -68,6 +55,9 @@ struct EvaluationResultView: View {
         }
         .onAppear {
             generatePDF()
+        }
+        .sheet(isPresented: $showingEdit, onDismiss: generatePDF) {
+            ChecklistView(evaluation: evaluation)
         }
     }
     
@@ -144,28 +134,9 @@ struct EvaluationReportPDFView: View {
 
 extension StockEvaluation {
     func passedCriteriaList() -> [String] {
-        var list: [String] = []
-        if epsYearlyIncreases { list.append("1. EPS yearly increases") }
-        if epsRateOfIncrease { list.append("2. EPS rate of increase") }
-        if predictableEarnings { list.append("3. Predictability of Earnings") }
-        if goodYield { list.append("4. Good Yield") }
-        if goodROE { list.append("5. Good ROE") }
-        if strongCashFlow { list.append("6. Strong Cash Flow") }
-        if positiveSlope { list.append("7. Positive Slope") }
-        if lowDebtToEquity { list.append("8. Low Debt to Equity") }
-        if reasonablePE { list.append("9. Reasonable PE") }
-        if positiveInsiderActivity { list.append("10. Positive Insider Activity") }
-        if isConsumerMonopoly { list.append("11. Consumer Monopoly") }
-        if positiveSpin { list.append("12. Positive Spin") }
-        if favorableAnalystOpinion { list.append("13. Favorable Analyst Opinion") }
-        if belowFairValue { list.append("14. Below Fair Value") }
-        if understandableBusiness { list.append("15. Understandable Business") }
-        if potentialTakeoverTarget { list.append("16. Takeover Target") }
-        if isEvolutionaryNotRevolutionary { list.append("17. Evolution not Revolution") }
-        if isGreatCompany { list.append("18. Great / Good Company") }
-        if goodPricing { list.append("19. Good Investment Price") }
-        if noPortfolioDuplication { list.append("20. No Portfolio Duplication") }
-        return list
+        ChecklistCriterion.all
+            .filter { self[keyPath: $0.keyPath] }
+            .map(\.label)
     }
 }
 

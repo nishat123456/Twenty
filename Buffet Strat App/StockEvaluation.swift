@@ -58,13 +58,6 @@ final class StockEvaluation {
     }
     
     var score: Int {
-        let bools = [
-            epsYearlyIncreases, epsRateOfIncrease, predictableEarnings, goodYield,
-            goodROE, strongCashFlow, positiveSlope, lowDebtToEquity, reasonablePE,
-            positiveInsiderActivity, isConsumerMonopoly, positiveSpin, favorableAnalystOpinion,
-            belowFairValue, understandableBusiness, potentialTakeoverTarget,
-            isEvolutionaryNotRevolutionary, isGreatCompany, goodPricing, noPortfolioDuplication
-        ]
-        return bools.filter { $0 }.count
+        ChecklistCriterion.all.filter { self[keyPath: $0.keyPath] }.count
     }
 }
