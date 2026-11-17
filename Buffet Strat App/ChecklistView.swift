@@ -141,8 +141,9 @@ struct ChecklistView: View {
                 if let pe = data.pe {
                     reasonablePE = pe < 15 && pe > 0
                 }
-                if let eps = data.eps {
-                    epsYearlyIncreases = eps > 0
+                if let rules = Self.epsRules(for: data.epsHistory) {
+                    epsYearlyIncreases = rules.risesEveryYear
+                    epsRateOfIncrease = rules.growsTenPercentPerYear
                 }
                 if let roe = data.returnOnEquity {
                     goodROE = roe > 0.15
@@ -157,5 +158,22 @@ struct ChecklistView: View {
         } catch {
             print("Failed to autofill: \(error)")
         }
+    }
+
+    // Needs 5 years of EPS, oldest first. Returns nil when there isn't enough data.
+    static func epsRules(for history: [Double]) -> (risesEveryYear: Bool, growsTenPercentPerYear: Bool)? {
+        guard history.count >= 5 else { return nil }
+        let eps = Array(history.suffix(5))
+
+        let risesEveryYear = zip(eps, eps.dropFirst()).allSatisfy { $1 > $0 }
+
+        var growsTenPercentPerYear = false
+        if let first = eps.first, let last = eps.last, first > 0, last > 0 {
+            let years = Double(eps.count - 1)
+            let annualGrowth = pow(last / first, 1 / years) - 1
+            growsTenPercentPerYear = annualGrowth >= 0.10
+        }
+
+        return (risesEveryYear, growsTenPercentPerYear)
     }
 }
