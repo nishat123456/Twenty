@@ -122,7 +122,6 @@ struct EvaluationReportPDFView: View {
             Text("Passed Criteria (✅):").bold()
             
             let passed = evaluation.passedCriteriaList()
-            // Try to split them into a 2-column grid or just a vertical list
             ForEach(passed, id: \.self) { c in
                 Text("✅ \(c)")
                     .font(.subheadline)

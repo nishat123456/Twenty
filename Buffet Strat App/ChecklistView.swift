@@ -29,16 +29,19 @@ struct ChecklistView: View {
     @State private var isGreatCompany = false
     @State private var goodPricing = false
     @State private var noPortfolioDuplication = false
-    
+
+    private var normalizedTicker: String {
+        tickerSymbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section(header: Text("Stock Info")) {
                     HStack {
                         TextField("Ticker Symbol", text: $tickerSymbol)
-#if os(iOS)
-                            .autocapitalization(.allCharacters)
-#endif
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
                         Spacer()
                         if isLoading {
                             ProgressView()
@@ -49,7 +52,7 @@ struct ChecklistView: View {
                                 }
                             }
                             .buttonStyle(.bordered)
-                            .disabled(tickerSymbol.isEmpty)
+                            .disabled(normalizedTicker.isEmpty)
                         }
                     }
                     TextField("Notes", text: $notes, axis: .vertical)
@@ -93,14 +96,14 @@ struct ChecklistView: View {
                     Button("Save") {
                         saveEvaluation()
                     }
-                    .disabled(tickerSymbol.isEmpty)
+                    .disabled(normalizedTicker.isEmpty)
                 }
             }
         }
     }
     
     private func saveEvaluation() {
-        let evaluation = StockEvaluation(tickerSymbol: tickerSymbol)
+        let evaluation = StockEvaluation(tickerSymbol: normalizedTicker)
         evaluation.notes = notes
         evaluation.epsYearlyIncreases = epsYearlyIncreases
         evaluation.epsRateOfIncrease = epsRateOfIncrease
@@ -128,28 +131,26 @@ struct ChecklistView: View {
     }
     
     private func autofill() async {
-        guard !tickerSymbol.isEmpty else { return }
+        let ticker = normalizedTicker
+        guard !ticker.isEmpty else { return }
         isLoading = true
         defer { isLoading = false }
-        
+
         do {
-            if let quote = try await APIService.shared.fetchQuote(for: tickerSymbol) {
-                if let pe = quote.pe {
+            if let data = try await APIService.shared.fetchFundamentals(for: ticker) {
+                if let pe = data.pe {
                     reasonablePE = pe < 15 && pe > 0
                 }
-                if let eps = quote.eps {
-                    epsYearlyIncreases = eps > 0 // Basic assumption for trailing, just a heuristic
+                if let eps = data.eps {
+                    epsYearlyIncreases = eps > 0
                 }
-            }
-            
-            if let metrics = try await APIService.shared.fetchKeyMetrics(for: tickerSymbol) {
-                if let roe = metrics.returnOnEquityTTM {
+                if let roe = data.returnOnEquity {
                     goodROE = roe > 0.15
                 }
-                if let debtEquity = metrics.debtToEquityTTM {
+                if let debtEquity = data.debtToEquity {
                     lowDebtToEquity = debtEquity < 0.5 && debtEquity > 0
                 }
-                if let yield = metrics.dividendYieldTTM {
+                if let yield = data.dividendYield {
                     goodYield = yield > 0.02
                 }
             }

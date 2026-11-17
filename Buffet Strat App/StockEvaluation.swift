@@ -19,16 +19,16 @@ final class StockEvaluation {
     var lowDebtToEquity: Bool    // 8. Debt to Equity Ratio
     var reasonablePE: Bool       // 9. PE
     var positiveInsiderActivity: Bool // 10. Insider Activity
-    var isConsumerMonopoly: Bool // 11. Primary Company a/o consumer monopoly
-    var positiveSpin: Bool       // 12. 'Spin'
+    var isConsumerMonopoly: Bool // 11. Consumer Monopoly
+    var positiveSpin: Bool       // 12. Spin
     var favorableAnalystOpinion: Bool // 13. Analyst's Opinion
     var belowFairValue: Bool     // 14. Fair Value
     var understandableBusiness: Bool // 15. Understandable Business
     var potentialTakeoverTarget: Bool // 16. Takeover Target
-    var isEvolutionaryNotRevolutionary: Bool // 17. Evolution or Revolution
-    var isGreatCompany: Bool     // 18. Would this be a great or just good company to own?
-    var goodPricing: Bool        // 19. At what price (max) would it be a good investment?
-    var noPortfolioDuplication: Bool // 20. Would it duplicate other holdings too much?
+    var isEvolutionaryNotRevolutionary: Bool // 17. Evolution not Revolution
+    var isGreatCompany: Bool     // 18. Great or good company
+    var goodPricing: Bool        // 19. Good Investment Price
+    var noPortfolioDuplication: Bool // 20. No Portfolio Duplication
     
     init(tickerSymbol: String) {
         self.id = UUID()
