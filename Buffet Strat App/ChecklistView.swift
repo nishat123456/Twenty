@@ -4,41 +4,37 @@ import SwiftData
 struct ChecklistView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var tickerSymbol: String = ""
-    @State private var notes: String = ""
+
+    let evaluation: StockEvaluation?
+
+    @State private var tickerSymbol: String
+    @State private var notes: String
+    @State private var answers: [Bool]
     @State private var isLoading = false
-    
-    @State private var epsYearlyIncreases = false
-    @State private var epsRateOfIncrease = false
-    @State private var predictableEarnings = false
-    @State private var goodYield = false
-    @State private var goodROE = false
-    @State private var strongCashFlow = false
-    @State private var positiveSlope = false
-    @State private var lowDebtToEquity = false
-    @State private var reasonablePE = false
-    @State private var positiveInsiderActivity = false
-    @State private var isConsumerMonopoly = false
-    @State private var positiveSpin = false
-    @State private var favorableAnalystOpinion = false
-    @State private var belowFairValue = false
-    @State private var understandableBusiness = false
-    @State private var potentialTakeoverTarget = false
-    @State private var isEvolutionaryNotRevolutionary = false
-    @State private var isGreatCompany = false
-    @State private var goodPricing = false
-    @State private var noPortfolioDuplication = false
-    
+
+    init(evaluation: StockEvaluation? = nil) {
+        self.evaluation = evaluation
+        _tickerSymbol = State(initialValue: evaluation?.tickerSymbol ?? "")
+        _notes = State(initialValue: evaluation?.notes ?? "")
+        _answers = State(initialValue: ChecklistCriterion.all.map { evaluation?[keyPath: $0.keyPath] ?? false })
+    }
+
+    private var normalizedTicker: String {
+        tickerSymbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
+    private var liveScore: Int {
+        answers.filter { $0 }.count
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Stock Info")) {
+                Section {
                     HStack {
                         TextField("Ticker Symbol", text: $tickerSymbol)
-#if os(iOS)
-                            .autocapitalization(.allCharacters)
-#endif
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
                         Spacer()
                         if isLoading {
                             ProgressView()
@@ -49,42 +45,30 @@ struct ChecklistView: View {
                                 }
                             }
                             .buttonStyle(.bordered)
-                            .disabled(tickerSymbol.isEmpty)
+                            .disabled(normalizedTicker.isEmpty)
                         }
                     }
                     TextField("Notes", text: $notes, axis: .vertical)
+                } header: {
+                    SectionHeader(title: "Stock")
                 }
-                
-                Section(header: Text("Financials")) {
-                    Toggle("1. EPS - yearly increases (5 yrs)", isOn: $epsYearlyIncreases)
-                    Toggle("2. EPS - rate of increase (5 yrs)", isOn: $epsRateOfIncrease)
-                    Toggle("3. Predictability of Earnings", isOn: $predictableEarnings)
-                    Toggle("4. Yield", isOn: $goodYield)
-                    Toggle("5. ROE", isOn: $goodROE)
-                    Toggle("6. Cash Flow", isOn: $strongCashFlow)
-                    Toggle("7. Slope", isOn: $positiveSlope)
-                    Toggle("8. Debt to Equity Ratio", isOn: $lowDebtToEquity)
-                    Toggle("9. PE", isOn: $reasonablePE)
-                }
-                
-                Section(header: Text("Company & Market")) {
-                    Toggle("10. Insider Activity", isOn: $positiveInsiderActivity)
-                    Toggle("11. Consumer Monopoly", isOn: $isConsumerMonopoly)
-                    Toggle("12. Spin", isOn: $positiveSpin)
-                    Toggle("13. Analyst's Opinion", isOn: $favorableAnalystOpinion)
-                    Toggle("14. Fair Value", isOn: $belowFairValue)
-                }
-                
-                Section(header: Text("Qualitative Checks")) {
-                    Toggle("15. Understandable Business", isOn: $understandableBusiness)
-                    Toggle("16. Takeover Target", isOn: $potentialTakeoverTarget)
-                    Toggle("17. Evolution not Revolution", isOn: $isEvolutionaryNotRevolutionary)
-                    Toggle("18. Great or good company?", isOn: $isGreatCompany)
-                    Toggle("19. Good Investment Price?", isOn: $goodPricing)
-                    Toggle("20. No Portfolio Duplication?", isOn: $noPortfolioDuplication)
+
+                ForEach(ChecklistCriterion.Category.allCases, id: \.self) { category in
+                    Section {
+                        ForEach(ChecklistCriterion.all.indices.filter { ChecklistCriterion.all[$0].category == category }, id: \.self) { index in
+                            CriterionToggle(criterion: ChecklistCriterion.all[index], isOn: $answers[index])
+                        }
+                    } header: {
+                        SectionHeader(title: category.rawValue)
+                    }
                 }
             }
-            .navigationTitle("New Evaluation")
+            .screenBackground()
+            .safeAreaInset(edge: .bottom) {
+                LiveScoreBar(score: liveScore)
+            }
+            .navigationTitle(evaluation == nil ? "New Evaluation" : "Edit Evaluation")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -93,68 +77,157 @@ struct ChecklistView: View {
                     Button("Save") {
                         saveEvaluation()
                     }
-                    .disabled(tickerSymbol.isEmpty)
+                    .disabled(normalizedTicker.isEmpty)
                 }
             }
         }
     }
-    
+
     private func saveEvaluation() {
-        let evaluation = StockEvaluation(tickerSymbol: tickerSymbol)
-        evaluation.notes = notes
-        evaluation.epsYearlyIncreases = epsYearlyIncreases
-        evaluation.epsRateOfIncrease = epsRateOfIncrease
-        evaluation.predictableEarnings = predictableEarnings
-        evaluation.goodYield = goodYield
-        evaluation.goodROE = goodROE
-        evaluation.strongCashFlow = strongCashFlow
-        evaluation.positiveSlope = positiveSlope
-        evaluation.lowDebtToEquity = lowDebtToEquity
-        evaluation.reasonablePE = reasonablePE
-        evaluation.positiveInsiderActivity = positiveInsiderActivity
-        evaluation.isConsumerMonopoly = isConsumerMonopoly
-        evaluation.positiveSpin = positiveSpin
-        evaluation.favorableAnalystOpinion = favorableAnalystOpinion
-        evaluation.belowFairValue = belowFairValue
-        evaluation.understandableBusiness = understandableBusiness
-        evaluation.potentialTakeoverTarget = potentialTakeoverTarget
-        evaluation.isEvolutionaryNotRevolutionary = isEvolutionaryNotRevolutionary
-        evaluation.isGreatCompany = isGreatCompany
-        evaluation.goodPricing = goodPricing
-        evaluation.noPortfolioDuplication = noPortfolioDuplication
-        
-        modelContext.insert(evaluation)
+        let target = evaluation ?? StockEvaluation(tickerSymbol: normalizedTicker)
+        target.tickerSymbol = normalizedTicker
+        target.notes = notes
+        for (index, criterion) in ChecklistCriterion.all.enumerated() {
+            target[keyPath: criterion.keyPath] = answers[index]
+        }
+
+        if evaluation == nil {
+            modelContext.insert(target)
+        }
         dismiss()
     }
-    
+
+    private func setAnswer(_ keyPath: ReferenceWritableKeyPath<StockEvaluation, Bool>, _ value: Bool) {
+        if let index = ChecklistCriterion.all.firstIndex(where: { $0.keyPath == keyPath }) {
+            answers[index] = value
+        }
+    }
+
     private func autofill() async {
-        guard !tickerSymbol.isEmpty else { return }
+        let ticker = normalizedTicker
+        guard !ticker.isEmpty else { return }
         isLoading = true
         defer { isLoading = false }
-        
+
         do {
-            if let quote = try await APIService.shared.fetchQuote(for: tickerSymbol) {
-                if let pe = quote.pe {
-                    reasonablePE = pe < 15 && pe > 0
+            if let data = try await APIService.shared.fetchFundamentals(for: ticker) {
+                if let pe = data.pe {
+                    setAnswer(\.reasonablePE, pe < 15 && pe > 0)
                 }
-                if let eps = quote.eps {
-                    epsYearlyIncreases = eps > 0 // Basic assumption for trailing, just a heuristic
+                if let rules = Self.epsRules(for: data.epsHistory) {
+                    setAnswer(\.epsYearlyIncreases, rules.risesEveryYear)
+                    setAnswer(\.epsRateOfIncrease, rules.growsTenPercentPerYear)
                 }
-            }
-            
-            if let metrics = try await APIService.shared.fetchKeyMetrics(for: tickerSymbol) {
-                if let roe = metrics.returnOnEquityTTM {
-                    goodROE = roe > 0.15
+                if let roe = data.returnOnEquity {
+                    setAnswer(\.goodROE, roe > 0.15)
                 }
-                if let debtEquity = metrics.debtToEquityTTM {
-                    lowDebtToEquity = debtEquity < 0.5 && debtEquity > 0
+                if let debtEquity = data.debtToEquity {
+                    setAnswer(\.lowDebtToEquity, debtEquity < 0.5 && debtEquity > 0)
                 }
-                if let yield = metrics.dividendYieldTTM {
-                    goodYield = yield > 0.02
+                if let yield = data.dividendYield {
+                    setAnswer(\.goodYield, yield > 0.02)
                 }
             }
         } catch {
             print("Failed to autofill: \(error)")
         }
+    }
+
+    // Needs 5 years of EPS, oldest first. Returns nil when there isn't enough data.
+    static func epsRules(for history: [Double]) -> (risesEveryYear: Bool, growsTenPercentPerYear: Bool)? {
+        guard history.count >= 5 else { return nil }
+        let eps = Array(history.suffix(5))
+
+        let risesEveryYear = zip(eps, eps.dropFirst()).allSatisfy { $1 > $0 }
+
+        var growsTenPercentPerYear = false
+        if let first = eps.first, let last = eps.last, first > 0, last > 0 {
+            let years = Double(eps.count - 1)
+            let annualGrowth = pow(last / first, 1 / years) - 1
+            growsTenPercentPerYear = annualGrowth >= 0.10
+        }
+
+        return (risesEveryYear, growsTenPercentPerYear)
+    }
+}
+
+struct CriterionToggle: View {
+    let criterion: ChecklistCriterion
+    @Binding var isOn: Bool
+    @State private var showingInfo = false
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(criterion.label)
+                    if criterion.autoFillRule != nil {
+                        Text("Auto-fill")
+                            .font(.caption)
+                            .foregroundStyle(.tint)
+                    }
+                }
+
+                Spacer(minLength: 4)
+
+                Button {
+                    showingInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.tint)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("About \(criterion.title)")
+                .popover(isPresented: $showingInfo) {
+                    CriterionInfoView(criterion: criterion)
+                        .presentationCompactAdaptation(.popover)
+                }
+            }
+        }
+    }
+}
+
+struct LiveScoreBar: View {
+    let score: Int
+
+    var body: some View {
+        let recommendation = Recommendation(score: score)
+        HStack {
+            Text("Score")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(recommendation.title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text("\(score)/\(ChecklistCriterion.all.count)")
+                .font(.headline)
+                .monospacedDigit()
+                .foregroundStyle(recommendation.color)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+}
+
+struct CriterionInfoView: View {
+    let criterion: ChecklistCriterion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(criterion.label)
+                .font(.headline)
+            Text(criterion.explanation)
+                .font(.subheadline)
+            if let rule = criterion.autoFillRule {
+                Text("Auto-fill: \(rule)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 280, alignment: .leading)
+        .padding()
     }
 }
