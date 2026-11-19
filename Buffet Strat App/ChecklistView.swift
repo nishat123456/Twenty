@@ -23,10 +23,14 @@ struct ChecklistView: View {
         tickerSymbol.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
     }
 
+    private var liveScore: Int {
+        answers.filter { $0 }.count
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Stock Info")) {
+                Section {
                     HStack {
                         TextField("Ticker Symbol", text: $tickerSymbol)
                             .textInputAutocapitalization(.characters)
@@ -45,17 +49,26 @@ struct ChecklistView: View {
                         }
                     }
                     TextField("Notes", text: $notes, axis: .vertical)
+                } header: {
+                    SectionHeader(title: "Stock")
                 }
 
                 ForEach(ChecklistCriterion.Category.allCases, id: \.self) { category in
-                    Section(header: Text(category.rawValue)) {
+                    Section {
                         ForEach(ChecklistCriterion.all.indices.filter { ChecklistCriterion.all[$0].category == category }, id: \.self) { index in
                             CriterionToggle(criterion: ChecklistCriterion.all[index], isOn: $answers[index])
                         }
+                    } header: {
+                        SectionHeader(title: category.rawValue)
                     }
                 }
             }
+            .screenBackground()
+            .safeAreaInset(edge: .bottom) {
+                LiveScoreBar(score: liveScore)
+            }
             .navigationTitle(evaluation == nil ? "New Evaluation" : "Edit Evaluation")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -145,20 +158,23 @@ struct CriterionToggle: View {
 
     var body: some View {
         Toggle(isOn: $isOn) {
-            HStack(spacing: 6) {
-                Text(criterion.label)
-                if criterion.autoFillRule != nil {
-                    Text("Auto")
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .foregroundStyle(Color.accentColor)
-                        .background(Color.accentColor.opacity(0.15), in: Capsule())
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(criterion.label)
+                    if criterion.autoFillRule != nil {
+                        Text("Auto-fill")
+                            .font(.caption)
+                            .foregroundStyle(.tint)
+                    }
                 }
+
+                Spacer(minLength: 4)
+
                 Button {
                     showingInfo = true
                 } label: {
                     Image(systemName: "info.circle")
+                        .foregroundStyle(.tint)
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel("About \(criterion.title)")
@@ -168,6 +184,30 @@ struct CriterionToggle: View {
                 }
             }
         }
+    }
+}
+
+struct LiveScoreBar: View {
+    let score: Int
+
+    var body: some View {
+        let recommendation = Recommendation(score: score)
+        HStack {
+            Text("Score")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(recommendation.title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text("\(score)/\(ChecklistCriterion.all.count)")
+                .font(.headline)
+                .monospacedDigit()
+                .foregroundStyle(recommendation.color)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
     }
 }
 
@@ -181,7 +221,7 @@ struct CriterionInfoView: View {
             Text(criterion.explanation)
                 .font(.subheadline)
             if let rule = criterion.autoFillRule {
-                Label("Auto-fill: \(rule)", systemImage: "wand.and.stars")
+                Text("Auto-fill: \(rule)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

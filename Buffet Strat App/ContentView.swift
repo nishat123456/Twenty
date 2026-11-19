@@ -6,29 +6,18 @@ struct ContentView: View {
     @Query(sort: \StockEvaluation.evaluationDate, order: .reverse) private var evaluations: [StockEvaluation]
     @State private var showingAddChecklist = false
     @State private var showingSettings = false
-    
+
     var body: some View {
         NavigationStack {
             List {
                 ForEach(evaluations) { evaluation in
                     NavigationLink(destination: EvaluationResultView(evaluation: evaluation)) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(evaluation.tickerSymbol)
-                                    .font(.headline)
-                                Text(evaluation.evaluationDate, format: Date.FormatStyle(date: .numeric, time: .standard))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Text("\(evaluation.score)/20")
-                                .bold()
-                                .foregroundColor(scoreColor(evaluation.score))
-                        }
+                        EvaluationRow(evaluation: evaluation)
                     }
                 }
                 .onDelete(perform: deleteItems)
             }
+            .screenBackground()
             .navigationTitle("Evaluations")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -55,12 +44,20 @@ struct ContentView: View {
             }
             .overlay {
                 if evaluations.isEmpty {
-                    ContentUnavailableView("No Evaluations", systemImage: "chart.line.uptrend.xyaxis", description: Text("Tap + to evaluate a new stock."))
+                    ContentUnavailableView {
+                        Label("No Evaluations", systemImage: "list.bullet.rectangle")
+                    } description: {
+                        Text("Evaluate a stock against the 20-point checklist.")
+                    } actions: {
+                        Button("New Evaluation") {
+                            showingAddChecklist = true
+                        }
+                    }
                 }
             }
         }
     }
-    
+
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
@@ -68,11 +65,33 @@ struct ContentView: View {
             }
         }
     }
-    
-    private func scoreColor(_ score: Int) -> Color {
-        if score >= 16 { return .green }
-        if score >= 12 { return .orange }
-        return .red
+}
+
+struct EvaluationRow: View {
+    let evaluation: StockEvaluation
+
+    var body: some View {
+        let recommendation = Recommendation(score: evaluation.score)
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(evaluation.tickerSymbol)
+                    .font(.headline)
+                Text(evaluation.evaluationDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 3) {
+                Text("\(evaluation.score)/\(ChecklistCriterion.all.count)")
+                    .font(.headline)
+                    .monospacedDigit()
+                    .foregroundStyle(recommendation.color)
+                Text(recommendation.title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

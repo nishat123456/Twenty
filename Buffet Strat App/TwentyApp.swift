@@ -5,6 +5,12 @@ import SwiftData
 struct TwentyApp: App {
     @State private var showingLanding = true
 
+    init() {
+        let accent = UIColor(Theme.accent)
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: accent]
+        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: accent]
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             StockEvaluation.self,

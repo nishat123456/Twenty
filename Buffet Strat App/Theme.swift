@@ -1,24 +1,17 @@
 import SwiftUI
 
 enum Theme {
-    static let green = Color(hex: 0x1F4D3A)
-    static let cream = Color(hex: 0xF6F1E7)
-    static let card = Color(hex: 0xFFFCF6)
-    static let gold = Color(hex: 0xB8893B)
-    static let ink = Color(hex: 0x1C1C1C)
+    static let accent = Color(hex: 0x1F3A5F)
+    static let background = Color(hex: 0xEBF0F6)
+    static let positive = Color(hex: 0x2E7D4F)
+    static let neutral = Color(hex: 0xB7791F)
+    static let negative = Color(hex: 0xB42318)
+}
 
-    static let scoreGreen = Color(hex: 0x2E7D4F)
-    static let scoreAmber = Color(hex: 0xC98A1B)
-    static let scoreRed = Color(hex: 0xB23A3A)
-
-    static func scoreColor(_ score: Int) -> Color {
-        if score >= 16 { return scoreGreen }
-        if score >= 12 { return scoreAmber }
-        return scoreRed
-    }
-
-    static func serif(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight, design: .serif)
+extension View {
+    func screenBackground() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Theme.background)
     }
 }
 
